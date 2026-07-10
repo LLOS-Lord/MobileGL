@@ -179,7 +179,13 @@ namespace MobileGL::MG_State::GLState {
         auto result = ShaderCompiler::CompileShader(attrib);
         if (result) {
             m_compileStatus = true;
-            m_shader = result.value();
+            // NOTE (A11/iOS16 fix): use operator* instead of .value(). Both are safe here since
+            // we've just checked has_value() via `if (result)`, but .value() unconditionally
+            // compiles in a `throw bad_expected_access(...)` path whose typeinfo symbol is
+            // missing from /usr/lib/libc++.1.dylib on iOS 16 (the version cap for A11 Bionic
+            // devices), which makes dlopen() of the whole dylib fail before any code runs.
+            // operator* never references that symbol. See integration guide section 8.
+            m_shader = *result;
             m_infoLog.clear();
         } else {
             m_compileStatus = false;

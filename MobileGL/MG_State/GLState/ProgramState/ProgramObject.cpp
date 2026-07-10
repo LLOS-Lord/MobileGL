@@ -263,7 +263,8 @@ namespace MobileGL::MG_State::GLState {
         auto result = MG_Util::ShaderTranspiler::ShaderCompiler::LinkProgram(attrib);
         if (result) {
             m_linkStatus = true;
-            m_program = result.value();
+            // NOTE (A11/iOS16 fix): operator* instead of .value() -- see ShaderObject.cpp for why.
+            m_program = *result;
             m_linkedFragDataLocation = m_explicitFragDataLocation;
             MGLOG_D("ProgramObject %u: LinkProgram succeeded, TProgram ptr %p", m_externalIndex, m_program.get());
         } else {
@@ -543,7 +544,8 @@ namespace MobileGL::MG_State::GLState {
                         compileSource.c_str());
             }
             MOBILEGL_ASSERT(res, "CompileShader failed during binary generation");
-            shaders[i] = res.value();
+            // NOTE (A11/iOS16 fix): operator* instead of .value() -- see ShaderObject.cpp for why.
+            shaders[i] = *res;
             MGLOG_D("ProgramObject %u: GenerateBinary - compiled shader[%zu] -> TShader ptr %p", m_externalIndex, i,
                     shaders[i].get());
         }
@@ -559,7 +561,8 @@ namespace MobileGL::MG_State::GLState {
             MGLOG_E("ProgramObject %u: GenerateBinary - LinkProgram failed during binary generation", m_externalIndex);
         }
         MOBILEGL_ASSERT(programResult, "LinkProgram failed during binary generation");
-        auto& program = programResult.value();
+        // NOTE (A11/iOS16 fix): operator* instead of .value() -- see ShaderObject.cpp for why.
+        auto& program = *programResult;
         MGLOG_D("ProgramObject %u: GenerateBinary - got linked program object", m_externalIndex);
 
         ProgramBinaryAttrib binaryAttrib{
@@ -572,7 +575,8 @@ namespace MobileGL::MG_State::GLState {
             MGLOG_E("ProgramObject %u: GenerateBinary - GetSpirvBinaryFromProgram failed", m_externalIndex);
         }
         MOBILEGL_ASSERT(binaryResult, "GetSpirvBinaryFromProgram failed");
-        m_generatedSpirv = Move(binaryResult.value());
+        // NOTE (A11/iOS16 fix): operator* instead of .value() -- see ShaderObject.cpp for why.
+        m_generatedSpirv = Move(*binaryResult);
         MGLOG_D("ProgramObject %u: GenerateBinary - generated %zu SPIR-V modules", m_externalIndex,
                 m_generatedSpirv.size());
 
