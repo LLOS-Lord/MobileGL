@@ -34,9 +34,16 @@ jobs:
             ${{ runner.os }}-ios-ccache-${{ github.ref_name }}-
             ${{ runner.os }}-ios-ccache-
 
-      - name: Install dependencies
+      - name: Install build tools
         run: |
           brew install ccache ninja
+
+      - name: Setup Vulkan SDK
+        uses: humbletim/setup-vulkan-sdk@v1.2.1
+        with:
+          vulkan-query-version: 1.4.304.1
+          vulkan-components: Vulkan-Headers, MoltenVK
+          vulkan-use-cache: true
 
       - name: Update glslang external sources
         working-directory: 3rdparty/glslang
@@ -48,6 +55,18 @@ jobs:
 
       - name: Configure CMake
         run: |
+          # Xác định đường dẫn tới thư viện MoltenVK cho iOS
+          # setup-vulkan-sdk cài đặt vào VULKAN_SDK
+          # Đối với iOS, chúng ta cần thư viện tĩnh MoltenVK hoặc dylib tương ứng
+          MVK_IOS_LIB="${VULKAN_SDK}/MoltenVK/static/iOS/libMoltenVK.a"
+          
+          if [ ! -f "$MVK_IOS_LIB" ]; then
+            echo "Warning: libMoltenVK.a not found at $MVK_IOS_LIB, searching..."
+            MVK_IOS_LIB=$(find $VULKAN_SDK -name "libMoltenVK.a" | grep iOS | head -n 1)
+          fi
+          
+          echo "Using MoltenVK iOS library: $MVK_IOS_LIB"
+
           cmake -S . -B "${BUILD_DIR}" -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE=ios.toolchain.cmake \
             -DPLATFORM=OS64 \
@@ -59,7 +78,8 @@ jobs:
             -DMOBILEGL_BUILD_TEST=OFF \
             -DMOBILEGL_BUILD_BENCHMARK=OFF \
             -DMOBILEGL_BUILD_TRACE_REPLAY=OFF \
-            -DMOBILEGL_LOG_ACTIVE_LEVEL=MOBILEGL_LOG_LEVEL_INFO
+            -DMOBILEGL_LOG_ACTIVE_LEVEL=MOBILEGL_LOG_LEVEL_INFO \
+            -DMOBILEGL_VULKAN_LIBRARY="$MVK_IOS_LIB"
 
       - name: Build
         run: cmake --build "${BUILD_DIR}" --config Release --target MobileGL --parallel $(sysctl -n hw.ncpu)
