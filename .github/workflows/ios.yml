@@ -1,0 +1,82 @@
+name: MobileGL iOS dylib
+
+on:
+  push:
+    branches:
+      - dev
+      - Feat/Backend-Direct-GLES
+      - Feat/Backend-Direct-Vulkan
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    env:
+      BUILD_DIR: build-ios
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_COMPRESS: "true"
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 4G
+      CCACHE_NOHASHDIR: "true"
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Restore ccache
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ${{ runner.os }}-ios-ccache-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-ios-ccache-${{ github.ref_name }}-
+            ${{ runner.os }}-ios-ccache-
+
+      - name: Install dependencies
+        run: |
+          brew install ccache ninja
+
+      - name: Update glslang external sources
+        working-directory: 3rdparty/glslang
+        run: python3 update_glslang_sources.py
+
+      - name: Download iOS toolchain
+        run: |
+          curl -L -o ios.toolchain.cmake https://raw.githubusercontent.com/leetal/ios-cmake/master/ios.toolchain.cmake
+
+      - name: Configure CMake
+        run: |
+          cmake -S . -B "${BUILD_DIR}" -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=ios.toolchain.cmake \
+            -DPLATFORM=OS64 \
+            -DDEPLOYMENT_TARGET=15.0 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DMOBILEGL_IOS=ON \
+            -DMOBILEGL_BUILD_TEST=OFF \
+            -DMOBILEGL_BUILD_BENCHMARK=OFF \
+            -DMOBILEGL_BUILD_TRACE_REPLAY=OFF \
+            -DMOBILEGL_LOG_ACTIVE_LEVEL=MOBILEGL_LOG_LEVEL_INFO
+
+      - name: Build
+        run: cmake --build "${BUILD_DIR}" --config Release --target MobileGL --parallel $(sysctl -n hw.ncpu)
+
+      - name: Show ccache stats
+        if: always()
+        run: ccache --show-stats
+
+      - name: Package iOS dylib
+        run: |
+          mkdir -p ci-artifacts
+          find "${BUILD_DIR}" -name "libMobileGL.dylib" -exec cp {} ci-artifacts/ \;
+          cd ci-artifacts && zip -r ../mobilegl-ios-dylib.zip .
+
+      - name: Upload iOS dylib
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobilegl-ios-dylib
+          path: mobilegl-ios-dylib.zip
+          if-no-files-found: error
