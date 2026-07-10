@@ -38,12 +38,27 @@ jobs:
         run: |
           brew install ccache ninja
 
-      - name: Setup Vulkan SDK
+      # === FIX: Tách step cũ thành 2 bước riêng biệt ===
+      # MoltenVK KHÔNG được hỗ trợ bởi humbletim/setup-vulkan-sdk
+      # (nằm trong TODO của CMakeLists.txt action)
+      # => Cài Vulkan-Headers riêng, tải MoltenVK prebuilt riêng
+
+      - name: Install Vulkan Headers
         uses: humbletim/setup-vulkan-sdk@v1.2.1
         with:
           vulkan-query-version: 1.4.304.1
-          vulkan-components: Vulkan-Headers, MoltenVK
+          vulkan-components: Vulkan-Headers
           vulkan-use-cache: true
+
+      - name: Download MoltenVK iOS prebuilt
+        run: |
+          MOLTENVK_VERSION="v1.2.11"
+          wget -q "https://github.com/KhronosGroup/MoltenVK/releases/download/${MOLTENVK_VERSION}-artifacts/MoltenVK-ios.tar" -O MoltenVK-ios.tar
+          mkdir -p /tmp/moltenvk-ios
+          tar -xf MoltenVK-ios.tar -C /tmp/moltenvk-ios
+          echo "MoltenVK iOS extracted successfully"
+          echo "Available libMoltenVK.a files:"
+          find /tmp/moltenvk-ios -name "libMoltenVK.a"
 
       - name: Update glslang external sources
         working-directory: 3rdparty/glslang
@@ -55,17 +70,19 @@ jobs:
 
       - name: Configure CMake
         run: |
-          # Xác định đường dẫn tới thư viện MoltenVK cho iOS
-          # setup-vulkan-sdk cài đặt vào VULKAN_SDK
-          # Đối với iOS, chúng ta cần thư viện tĩnh MoltenVK hoặc dylib tương ứng
-          MVK_IOS_LIB="${VULKAN_SDK}/MoltenVK/static/iOS/libMoltenVK.a"
-          
-          if [ ! -f "$MVK_IOS_LIB" ]; then
-            echo "Warning: libMoltenVK.a not found at $MVK_IOS_LIB, searching..."
-            MVK_IOS_LIB=$(find $VULKAN_SDK -name "libMoltenVK.a" | grep iOS | head -n 1)
+          # Tìm đường dẫn tới thư viện MoltenVK iOS trong package đã tải
+          # MoltenVK-ios.tar có cấu trúc: Package/Latest/MoltenVK/static/iOS/libMoltenVK.a
+          MVK_IOS_LIB=$(find /tmp/moltenvk-ios -name "libMoltenVK.a" | head -n 1)
+
+          if [ -z "$MVK_IOS_LIB" ]; then
+            echo "Error: libMoltenVK.a not found in MoltenVK iOS package!"
+            echo "Available files:"
+            find /tmp/moltenvk-ios -type f | head -30
+            exit 1
           fi
-          
+
           echo "Using MoltenVK iOS library: $MVK_IOS_LIB"
+          echo "File exists: $(test -f "$MVK_IOS_LIB" && echo yes || echo no)"
 
           cmake -S . -B "${BUILD_DIR}" -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE=ios.toolchain.cmake \
