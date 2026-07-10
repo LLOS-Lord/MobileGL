@@ -103,8 +103,18 @@ jobs:
 
       - name: Build
         run: cmake --build "${BUILD_DIR}" --config Release --target MobileGL --parallel $(sysctl -n hw.ncpu)
-      - name: sign fake 
-        run: ldid -S libMobileGL.dylib
+      - name: sign fake
+        run: |
+         DYLIB_PATH=$(find "${BUILD_DIR}" -name "libMobileGL.dylib" | head -n 1)
+         if [ -z "$DYLIB_PATH" ]; then
+         echo "::error::Không tìm thấy libMobileGL.dylib trong ${BUILD_DIR}"
+         find "${BUILD_DIR}" -type f -name "*.dylib"
+         exit 1
+       fi
+       
+       echo "Signing: $DYLIB_PATH"
+        ldid -S "$DYLIB_PATH"
+       
       - name: Show ccache stats
         if: always()
         run: ccache --show-stats
