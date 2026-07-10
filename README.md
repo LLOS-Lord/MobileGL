@@ -21,7 +21,7 @@ MobileGL is a *free* and *open-source* project that implements a desktop **OpenG
 MobileGL is an implementation of a desktop OpenGL library. It aims to provide:
 
 * Full OpenGL state management.
-* A front-end that exposes OpenGL functions.
+* A front-end that exposes OpenGL functions. 
 * Multiple independent backend implementations, where each backend targets a specific graphics API and remains fully isolated from others.
 
 This project is intended as an implementation/translation layer.
