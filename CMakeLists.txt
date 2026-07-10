@@ -431,6 +431,8 @@ if (APPLE AND MOBILEGL_IOS)
         "-framework CoreGraphics"
         "-framework Foundation"
         "-framework QuartzCore"
+        "-framework IOSurface"    # BẮT BUỘC: Chứa các symbol kIOSurface*
+        "-framework Metal"       # KHUYẾN NGHỊ: MoltenVK được xây dựng trên Metal API
         objc)
     if (MOBILEGL_VULKAN_LIBRARY)
         target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC "${MOBILEGL_VULKAN_LIBRARY}")
