@@ -1,19 +1,19 @@
 cmake_minimum_required(VERSION 3.22.1)
-
 project("MobileGL")
 
-option(MOBILEGL_BUILD_TEST        "Build MobileGL tests"                             ON )
-option(MOBILEGL_BUILD_BENCHMARK   "Build MobileGL benchmarks"                        ON )
-option(MOBILEGL_FORCE_RELEASE_OPT "Enable Release optimization flags in Debug build" ON )
-option(MOBILEGL_ENABLE_TRACY      "Enable tracy for profiling"                       OFF)
-option(MOBILEGL_BUILD_TRACE_REPLAY "Build desktop apitrace replay runner"            OFF)
-option(MOBILEGL_IOS               "Build MobileGL for iOS instead of macOS when APPLE is set" OFF)
+option(MOBILEGL_BUILD_TEST "Build MobileGL tests" ON)
+option(MOBILEGL_BUILD_BENCHMARK "Build MobileGL benchmarks" ON)
+option(MOBILEGL_FORCE_RELEASE_OPT "Enable Release optimization flags in Debug build" ON)
+option(MOBILEGL_ENABLE_TRACY "Enable tracy for profiling" OFF)
+option(MOBILEGL_BUILD_TRACE_REPLAY "Build desktop apitrace replay runner" OFF)
+option(MOBILEGL_IOS "Build MobileGL for iOS instead of macOS when APPLE is set" OFF)
+
 set(MOBILEGL_LOG_ACTIVE_LEVEL "MOBILEGL_LOG_LEVEL_INFO" CACHE STRING "MobileGL active log level macro")
 set(MOBILEGL_VULKAN_LIBRARY "" CACHE FILEPATH "Vulkan loader/MoltenVK library to link for iOS builds")
 
 if (ANDROID)
-    set(MOBILEGL_BUILD_TEST       OFF CACHE BOOL "Build MobileGL tests"      FORCE)
-    set(MOBILEGL_BUILD_BENCHMARK  OFF CACHE BOOL "Build MobileGL benchmarks" FORCE)
+    set(MOBILEGL_BUILD_TEST OFF CACHE BOOL "Build MobileGL tests" FORCE)
+    set(MOBILEGL_BUILD_BENCHMARK OFF CACHE BOOL "Build MobileGL benchmarks" FORCE)
 endif()
 
 if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug" OR MOBILEGL_FORCE_RELEASE_OPT)
@@ -21,9 +21,7 @@ if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug" OR MOBILEGL_FORCE_RELEASE_OPT)
     include(CheckIPOSupported)
     include(CheckCCompilerFlag)
     include(CheckCXXCompilerFlag)
-
     check_ipo_supported(RESULT LTOSupported OUTPUT LTOError)
-
     check_c_compiler_flag("-flto" HAS_LTO_C)
     check_cxx_compiler_flag("-flto" HAS_LTO_CXX)
 
@@ -31,9 +29,9 @@ if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug" OR MOBILEGL_FORCE_RELEASE_OPT)
         # Check ThinLTO
         check_c_compiler_flag("-flto=thin" HAS_THINLTO_C)
         check_cxx_compiler_flag("-flto=thin" HAS_THINLTO_CXX)
+
         if (HAS_THINLTO_C AND HAS_THINLTO_CXX)
             message(STATUS "ThinLTO supported, using -flto=thin")
-
             add_compile_options(-flto=thin)
             add_link_options(-flto=thin)
         else()
@@ -49,7 +47,7 @@ if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug" OR MOBILEGL_FORCE_RELEASE_OPT)
         add_compile_options(-O3 -ffunction-sections -fdata-sections)
         add_link_options(-Wl,--gc-sections)
     elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-#        add_compile_options(/O2)
+        # add_compile_options(/O2)
     else ()
         add_compile_options(-O2)
     endif()
@@ -61,13 +59,9 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 endif()
 
 enable_language(CXX)
-
 set(CMAKE_CXX_STANDARD 23)
-
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 if (MSVC)
@@ -81,7 +75,6 @@ execute_process(
     OUTPUT_VARIABLE GIT_COMMIT_HASH_FULL
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-
 string(SUBSTRING "${GIT_COMMIT_HASH_FULL}" 0 7 GIT_COMMIT_HASH_SHORT)
 
 configure_file(
@@ -89,31 +82,27 @@ configure_file(
     ${CMAKE_BINARY_DIR}/generated/MGGitHash.h
     @ONLY
 )
-
 include_directories(${CMAKE_BINARY_DIR}/generated)
 
-set(ENABLE_RTTI                ON  CACHE BOOL "Enables RTTI (will be took by glslang)" FORCE)
-
-set(ENABLE_GLSLANG_BINARIES    OFF CACHE BOOL "Enable glslangValidator/spirv-remap" FORCE)
-set(ENABLE_SPVREMAPPER         OFF CACHE BOOL "Enable SPVRemapper" FORCE)
-set(ENABLE_OPT                 ON  CACHE BOOL "Enable SPIRV-Tools opt usage in glslang" FORCE)
-set(BUILD_EXTERNAL             ON  CACHE BOOL "Build external deps in External/" FORCE)
-set(ENABLE_GLSLANG_INSTALL     OFF CACHE BOOL "Install glslang targets" FORCE)
-
-set(SPIRV_CROSS_C_API          ON  CACHE BOOL "Enable C API" FORCE)
-set(SPIRV_CROSS_ENABLE_GLSL    ON  CACHE BOOL "Enable GLSL backend" FORCE)
-set(SPIRV_CROSS_ENABLE_HLSL    OFF CACHE BOOL "Disable HLSL backend" FORCE)
-set(SPIRV_CROSS_ENABLE_MSL     OFF CACHE BOOL "Disable MSL backend" FORCE)
-set(SPIRV_CROSS_ENABLE_CPP     OFF CACHE BOOL "Disable C++ API target" FORCE)
-set(SPIRV_CROSS_CLI            OFF CACHE BOOL "Disable CLI binary" FORCE)
-set(SPIRV_CROSS_STATIC         ON  CACHE BOOL "Prefer static libs" FORCE)
-
-set(SPIRV_REFLECT_EXECUTABLE     OFF CACHE BOOL "Build spirv-reflect executable" FORCE)
-set(SPIRV_REFLECT_STATIC_LIB     ON  CACHE BOOL "Build a SPIRV-Reflect static library" FORCE)
-set(SPIRV_REFLECT_BUILD_TESTS    OFF CACHE BOOL "Build the SPIRV-Reflect test suite" FORCE)
-set(SPIRV_REFLECT_ENABLE_ASSERTS OFF CACHE BOOL  "Enable asserts for debugging" FORCE)
-set(SPIRV_REFLECT_ENABLE_ASAN    OFF CACHE BOOL "Use address sanitization" FORCE)
-set(SPIRV_REFLECT_INSTALL        OFF CACHE BOOL "Whether to install" FORCE)
+set(ENABLE_RTTI ON CACHE BOOL "Enables RTTI (will be took by glslang)" FORCE)
+set(ENABLE_GLSLANG_BINARIES OFF CACHE BOOL "Enable glslangValidator/spirv-remap" FORCE)
+set(ENABLE_SPVREMAPPER OFF CACHE BOOL "Enable SPVRemapper" FORCE)
+set(ENABLE_OPT ON CACHE BOOL "Enable SPIRV-Tools opt usage in glslang" FORCE)
+set(BUILD_EXTERNAL ON CACHE BOOL "Build external deps in External/" FORCE)
+set(ENABLE_GLSLANG_INSTALL OFF CACHE BOOL "Install glslang targets" FORCE)
+set(SPIRV_CROSS_C_API ON CACHE BOOL "Enable C API" FORCE)
+set(SPIRV_CROSS_ENABLE_GLSL ON CACHE BOOL "Enable GLSL backend" FORCE)
+set(SPIRV_CROSS_ENABLE_HLSL OFF CACHE BOOL "Disable HLSL backend" FORCE)
+set(SPIRV_CROSS_ENABLE_MSL OFF CACHE BOOL "Disable MSL backend" FORCE)
+set(SPIRV_CROSS_ENABLE_CPP OFF CACHE BOOL "Disable C++ API target" FORCE)
+set(SPIRV_CROSS_CLI OFF CACHE BOOL "Disable CLI binary" FORCE)
+set(SPIRV_CROSS_STATIC ON CACHE BOOL "Prefer static libs" FORCE)
+set(SPIRV_REFLECT_EXECUTABLE OFF CACHE BOOL "Build spirv-reflect executable" FORCE)
+set(SPIRV_REFLECT_STATIC_LIB ON CACHE BOOL "Build a SPIRV-Reflect static library" FORCE)
+set(SPIRV_REFLECT_BUILD_TESTS OFF CACHE BOOL "Build the SPIRV-Reflect test suite" FORCE)
+set(SPIRV_REFLECT_ENABLE_ASSERTS OFF CACHE BOOL "Enable asserts for debugging" FORCE)
+set(SPIRV_REFLECT_ENABLE_ASAN OFF CACHE BOOL "Use address sanitization" FORCE)
+set(SPIRV_REFLECT_INSTALL OFF CACHE BOOL "Whether to install" FORCE)
 
 # add_subdirectory(3rdparty/DiligentCore)
 add_subdirectory(3rdparty/glslang)
@@ -128,14 +117,12 @@ option(BUILD_SHARED_LIBS OFF)
 add_subdirectory(3rdparty/xxHash/build/cmake xxhash_build EXCLUDE_FROM_ALL)
 
 set(TRACY_ENABLE ${MOBILEGL_ENABLE_TRACY} CACHE BOOL "Enable Tracy, this is an internal variable" FORCE)
-
 if (TRACY_ENABLE)
-    set(TRACY_ON_DEMAND            ON  CACHE BOOL "Enable profiling only connected" FORCE)
-    set(TRACY_NO_EXIT              OFF CACHE BOOL "Don't exit Tracy until connected" FORCE)
-    set(TRACY_DELAYED_INIT         ON  CACHE BOOL "Don't init Tracy on library load" FORCE)
-    set(TRACY_MANUAL_LIFETIME      ON  CACHE BOOL "Manually control Tracy lifetime" FORCE)
-    set(TRACY_NO_CRASH_HANDLER     ON  CACHE BOOL "Disable crash handling" FORCE)
-
+    set(TRACY_ON_DEMAND ON CACHE BOOL "Enable profiling only connected" FORCE)
+    set(TRACY_NO_EXIT OFF CACHE BOOL "Don't exit Tracy until connected" FORCE)
+    set(TRACY_DELAYED_INIT ON CACHE BOOL "Don't init Tracy on library load" FORCE)
+    set(TRACY_MANUAL_LIFETIME ON CACHE BOOL "Manually control Tracy lifetime" FORCE)
+    set(TRACY_NO_CRASH_HANDLER ON CACHE BOOL "Disable crash handling" FORCE)
     add_subdirectory(3rdparty/tracy)
 endif ()
 
@@ -143,14 +130,10 @@ set(SOURCE_FILES
     MobileGL/Init.cpp
     MobileGL/GlobalObjects.cpp
     MobileGL/ConfigLoader.cpp
-
     MobileGL/MG_Util/Debug/Log.cpp
-
     MobileGL/MG_Util/Math/VectorTypes.cpp
     MobileGL/MG_Util/Metrics/TextureMetrics.cpp
-
     MobileGL/MG_Util/Metrics/BufferMetrics.cpp
-
     MobileGL/MG_Util/Converters/GLToStr/GLEnumConverter.cpp
     MobileGL/MG_Util/Converters/EGLToStr/EGLEnumConverter.cpp
     MobileGL/MG_Util/Converters/MGToStr/DataTypeConverter.cpp
@@ -176,9 +159,7 @@ set(SOURCE_FILES
     MobileGL/MG_Util/Converters/MGToMG/TextureEnumConverter.cpp
     MobileGL/MG_Util/Converters/MGToVk/RenderStateEnumConverter.cpp
     MobileGL/MG_Util/Converters/MGToVk/TextureEnumConverter.cpp
-
     MobileGL/MG_Util/Classifiers/TextureEnumClassifier.cpp
-
     MobileGL/MG_Util/ShaderTranspiler/ShaderCompiler.cpp
     MobileGL/MG_Util/ShaderTranspiler/SpvcSession.cpp
     MobileGL/MG_Util/ShaderTranspiler/ShaderSourceProcessor.cpp
@@ -186,19 +167,14 @@ set(SOURCE_FILES
     MobileGL/MG_Util/ShaderTranspiler/SpirvPasses/FlattenInterfaceStructPass.cpp
     MobileGL/MG_Util/ShaderTranspiler/SpirvPasses/EliminateFloatEqualsZeroPass.cpp
     MobileGL/MG_Util/ShaderTranspiler/SpirvPasses/RenameSamplerFunctionParameterPass.cpp
-
     MobileGL/MG_Util/BackendLoaders/OpenGL/Loader.cpp
     MobileGL/MG_Util/BackendLoaders/Vulkan/Loader.cpp
-
     MobileGL/MG_Util/Texture/PixelStoreProcessor.cpp
     MobileGL/MG_Util/Texture/TextureFormatProcessor.cpp
-
     MobileGL/MG_Impl/GLXImpl/Exporting/Definitions.cpp
     MobileGL/MG_Impl/GLXImpl/LookUp/LookUp.cpp
-
     MobileGL/MG_Impl/EGLImpl/Exporting/Definitions.cpp
     MobileGL/MG_Impl/EGLImpl/EGLImpl.cpp
-    
     # @INSERTION_POINT:SOURCE_FILE_GLIMPL@ #
     MobileGL/MG_Impl/GLImpl/Sampler/Validators.cpp
     MobileGL/MG_Impl/GLImpl/Sampler/GL_Sampler.cpp
@@ -217,18 +193,14 @@ set(SOURCE_FILES
     MobileGL/MG_Impl/GLImpl/Exporting/Definitions.cpp
     MobileGL/MG_Impl/GLImpl/Getter/GL_Getter.cpp
     MobileGL/MG_Impl/GLImpl/Sync/GL_Sync.cpp
-
     MobileGL/MG_Impl/Init.cpp
     MobileGL/MG_Impl/GetProcAddress.cpp
-
     MobileGL/MG_Backend/Init.cpp
     MobileGL/MG_Backend/BackendObject.cpp
-
     MobileGL/MG_Backend/DirectGLES/DirectGLES.cpp
     MobileGL/MG_Backend/DirectGLES/BackendObject_DirectGLES.cpp
     MobileGL/MG_Backend/DirectGLES/Utils.cpp
     MobileGL/MG_Backend/DirectGLES/Managers.cpp
-
     MobileGL/MG_Backend/DirectVulkan/DirectVulkan.cpp
     MobileGL/MG_Backend/DirectVulkan/BackendObject_DirectVulkan.cpp
     MobileGL/MG_Backend/DirectVulkan/VmaImpl.cpp
@@ -237,7 +209,7 @@ set(SOURCE_FILES
     MobileGL/MG_Backend/DirectVulkan/Renderer/FrameContext.cpp
     MobileGL/MG_Backend/DirectVulkan/Renderer/PipelineFactory.cpp
     MobileGL/MG_Backend/DirectVulkan/Renderer/ProgramFactory.cpp
-        MobileGL/MG_Backend/DirectVulkan/Renderer/UniformManager.cpp
+    MobileGL/MG_Backend/DirectVulkan/Renderer/UniformManager.cpp
     MobileGL/MG_Backend/DirectVulkan/Renderer/BufferArena.cpp
     MobileGL/MG_Backend/DirectVulkan/Renderer/VkBufferManager.cpp
     MobileGL/MG_Backend/DirectVulkan/Renderer/VertexInputStateBuilder.cpp
@@ -247,7 +219,6 @@ set(SOURCE_FILES
     MobileGL/MG_Backend/DirectVulkan/Renderer/VkSamplerManager.cpp
     MobileGL/MG_Backend/DirectVulkan/Renderer/VkClearManager.cpp
     MobileGL/MG_Backend/DirectVulkan/Renderer/VkRenderPassManager.cpp
-
     MobileGL/MG_State/GLState/Core.cpp
     MobileGL/MG_State/EGLState/Core.cpp
     MobileGL/MG_State/GLState/ErrorState/Error.cpp
@@ -286,34 +257,33 @@ if (APPLE AND NOT MOBILEGL_IOS)
 endif()
 
 set(MOBILEGL_LINK_LIBRARIES
-        glslang::glslang
-        spirv-cross-c
-        SPIRV-Tools-opt
-        SPIRV-Tools
-        xxHash::xxhash
-        GPUOpen::VulkanMemoryAllocator
-        Vulkan::UtilityHeaders
-        spirv-reflect-static
+    glslang::glslang
+    spirv-cross-c
+    SPIRV-Tools-opt
+    SPIRV-Tools
+    xxHash::xxhash
+    GPUOpen::VulkanMemoryAllocator
+    Vulkan::UtilityHeaders
+    spirv-reflect-static
 )
 
 set(MOBILEGL_COMPILE_DEF
-        -DVMA_STATIC_VULKAN_FUNCTIONS=0
-        -DVMA_DYNAMIC_VULKAN_FUNCTIONS=1
-        -DVMA_VULKAN_VERSION=1001000
+    -DVMA_STATIC_VULKAN_FUNCTIONS=0
+    -DVMA_DYNAMIC_VULKAN_FUNCTIONS=1
+    -DVMA_VULKAN_VERSION=1001000
 )
-
 message(STATUS "MOBILEGL_COMPILE_DEF=${MOBILEGL_COMPILE_DEF}")
 
 set(MOBILEGL_INCLUDE_DIR
-        ${CMAKE_SOURCE_DIR}/include
-        ${CMAKE_SOURCE_DIR}/MobileGL
-        ${spirv-tools_SOURCE_DIR}
-        ${spirv-tools_SOURCE_DIR}/include
-        ${spirv-tools_BINARY_DIR}
-        ${SPIRV-Headers_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/MobileGL
+    ${spirv-tools_SOURCE_DIR}
+    ${spirv-tools_SOURCE_DIR}/include
+    ${spirv-tools_BINARY_DIR}
+    ${SPIRV-Headers_SOURCE_DIR}/include
 )
 
-add_library(${CMAKE_PROJECT_NAME} SHARED 
+add_library(${CMAKE_PROJECT_NAME} SHARED
     ${SOURCE_FILES}
 )
 
@@ -341,25 +311,25 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 )
 
 target_compile_definitions(${CMAKE_PROJECT_NAME}
-        PUBLIC
-        ${MOBILEGL_COMPILE_DEF}
-        MOBILEGL_LOG_ACTIVE_LEVEL=${MOBILEGL_LOG_ACTIVE_LEVEL}
+    PUBLIC
+    ${MOBILEGL_COMPILE_DEF}
+    MOBILEGL_LOG_ACTIVE_LEVEL=${MOBILEGL_LOG_ACTIVE_LEVEL}
 )
 
 if(UNIX AND NOT APPLE AND NOT ANDROID)
     foreach(MOBILEGL_LOADER_ALIAS
-            libEGL.so libEGL.so.1)
+        libEGL.so libEGL.so.1)
         add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E create_symlink
-                    "$<TARGET_FILE_NAME:${CMAKE_PROJECT_NAME}>"
-                    "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/${MOBILEGL_LOADER_ALIAS}"
+            "$<TARGET_FILE_NAME:${CMAKE_PROJECT_NAME}>"
+            "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/${MOBILEGL_LOADER_ALIAS}"
             COMMENT "Creating ${MOBILEGL_LOADER_ALIAS} alias for Linux GL/EGL loaders"
         )
     endforeach()
 endif()
 
 if(NOT ANDROID)
-    add_library(${CMAKE_PROJECT_NAME}_s STATIC 
+    add_library(${CMAKE_PROJECT_NAME}_s STATIC
         ${SOURCE_FILES}
     )
 
@@ -387,9 +357,9 @@ if(NOT ANDROID)
     )
 
     target_compile_definitions(${CMAKE_PROJECT_NAME}_s
-            PUBLIC
-            ${MOBILEGL_COMPILE_DEF}
-            MOBILEGL_LOG_ACTIVE_LEVEL=${MOBILEGL_LOG_ACTIVE_LEVEL}
+        PUBLIC
+        ${MOBILEGL_COMPILE_DEF}
+        MOBILEGL_LOG_ACTIVE_LEVEL=${MOBILEGL_LOG_ACTIVE_LEVEL}
     )
 endif()
 
@@ -431,8 +401,9 @@ if (APPLE AND MOBILEGL_IOS)
         "-framework CoreGraphics"
         "-framework Foundation"
         "-framework QuartzCore"
-        "-framework IOSurface"    # BẮT BUỘC: Chứa các symbol kIOSurface*
-        "-framework Metal"       # KHUYẾN NGHỊ: MoltenVK được xây dựng trên Metal API
+        "-framework IOSurface" # BẮT BUỘC: Chứa các symbol kIOSurface*
+        "-framework Metal" # KHUYẾN NGHỊ: MoltenVK được xây dựng trên Metal API
+        "-framework UIKit" # BẮT BUỘC: MoltenVK dùng UIView/UIScreen (CAMetalLayer) để tạo surface trên iOS
         objc)
     if (MOBILEGL_VULKAN_LIBRARY)
         target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC "${MOBILEGL_VULKAN_LIBRARY}")
@@ -444,6 +415,7 @@ if (APPLE AND MOBILEGL_IOS)
             "-framework CoreGraphics"
             "-framework Foundation"
             "-framework QuartzCore"
+            "-framework UIKit" # nhất quán với target shared, phòng khi target static cũng link MoltenVK
             objc)
         if (MOBILEGL_VULKAN_LIBRARY)
             target_link_libraries(${CMAKE_PROJECT_NAME}_s PUBLIC "${MOBILEGL_VULKAN_LIBRARY}")
