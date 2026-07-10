@@ -42,7 +42,10 @@ jobs:
       # MoltenVK KHÔNG được hỗ trợ bởi humbletim/setup-vulkan-sdk
       # (nằm trong TODO của CMakeLists.txt action)
       # => Cài Vulkan-Headers riêng, tải MoltenVK prebuilt riêng
-
+      
+      - name: install ldid
+      run: brew install ldid
+      
       - name: Install Vulkan Headers
         uses: humbletim/setup-vulkan-sdk@v1.2.1
         with:
@@ -100,7 +103,8 @@ jobs:
 
       - name: Build
         run: cmake --build "${BUILD_DIR}" --config Release --target MobileGL --parallel $(sysctl -n hw.ncpu)
-
+      - name: sign fake 
+        run: ldid -S libMobileGL.dylib
       - name: Show ccache stats
         if: always()
         run: ccache --show-stats
