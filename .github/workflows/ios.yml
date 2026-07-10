@@ -44,7 +44,7 @@ jobs:
       # => Cài Vulkan-Headers riêng, tải MoltenVK prebuilt riêng
       
       - name: install ldid
-      run: brew install ldid
+        run: brew install ldid
       
       - name: Install Vulkan Headers
         uses: humbletim/setup-vulkan-sdk@v1.2.1
