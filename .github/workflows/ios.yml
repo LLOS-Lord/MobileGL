@@ -33,19 +33,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-ios-ccache-${{ github.ref_name }}-
             ${{ runner.os }}-ios-ccache-
-
       - name: Install build tools
         run: |
           brew install ccache ninja
-
       # === FIX: Tách step cũ thành 2 bước riêng biệt ===
       # MoltenVK KHÔNG được hỗ trợ bởi humbletim/setup-vulkan-sdk
       # (nằm trong TODO của CMakeLists.txt action)
       # => Cài Vulkan-Headers riêng, tải MoltenVK prebuilt riêng
-      
+
       - name: install ldid
         run: brew install ldid
-      
+
       - name: Install Vulkan Headers
         uses: humbletim/setup-vulkan-sdk@v1.2.1
         with:
@@ -62,7 +60,6 @@ jobs:
           echo "MoltenVK iOS extracted successfully"
           echo "Available libMoltenVK.a files:"
           find /tmp/moltenvk-ios -name "libMoltenVK.a"
-
       - name: Update glslang external sources
         working-directory: 3rdparty/glslang
         run: python3 update_glslang_sources.py
@@ -70,23 +67,19 @@ jobs:
       - name: Download iOS toolchain
         run: |
           curl -L -o ios.toolchain.cmake https://raw.githubusercontent.com/leetal/ios-cmake/master/ios.toolchain.cmake
-
       - name: Configure CMake
         run: |
           # Tìm đường dẫn tới thư viện MoltenVK iOS trong package đã tải
           # MoltenVK-ios.tar có cấu trúc: Package/Latest/MoltenVK/static/iOS/libMoltenVK.a
           MVK_IOS_LIB=$(find /tmp/moltenvk-ios -name "libMoltenVK.a" | head -n 1)
-
           if [ -z "$MVK_IOS_LIB" ]; then
             echo "Error: libMoltenVK.a not found in MoltenVK iOS package!"
             echo "Available files:"
             find /tmp/moltenvk-ios -type f | head -30
             exit 1
           fi
-
           echo "Using MoltenVK iOS library: $MVK_IOS_LIB"
           echo "File exists: $(test -f "$MVK_IOS_LIB" && echo yes || echo no)"
-
           cmake -S . -B "${BUILD_DIR}" -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE=ios.toolchain.cmake \
             -DPLATFORM=OS64 \
@@ -100,21 +93,18 @@ jobs:
             -DMOBILEGL_BUILD_TRACE_REPLAY=OFF \
             -DMOBILEGL_LOG_ACTIVE_LEVEL=MOBILEGL_LOG_LEVEL_INFO \
             -DMOBILEGL_VULKAN_LIBRARY="$MVK_IOS_LIB"
-
       - name: Build
         run: cmake --build "${BUILD_DIR}" --config Release --target MobileGL --parallel $(sysctl -n hw.ncpu)
       - name: sign fake
         run: |
-         DYLIB_PATH=$(find "${BUILD_DIR}" -name "libMobileGL.dylib" | head -n 1)
-         if [ -z "$DYLIB_PATH" ]; then
-         echo "::error::Không tìm thấy libMobileGL.dylib trong ${BUILD_DIR}"
-         find "${BUILD_DIR}" -type f -name "*.dylib"
-         exit 1
-       fi
-       
-       echo "Signing: $DYLIB_PATH"
-        ldid -S "$DYLIB_PATH"
-       
+          DYLIB_PATH=$(find "${BUILD_DIR}" -name "libMobileGL.dylib" | head -n 1)
+          if [ -z "$DYLIB_PATH" ]; then
+            echo "::error::Không tìm thấy libMobileGL.dylib trong ${BUILD_DIR}"
+            find "${BUILD_DIR}" -type f -name "*.dylib"
+            exit 1
+          fi
+          echo "Signing: $DYLIB_PATH"
+          ldid -S "$DYLIB_PATH"
       - name: Show ccache stats
         if: always()
         run: ccache --show-stats
@@ -124,7 +114,6 @@ jobs:
           mkdir -p ci-artifacts
           find "${BUILD_DIR}" -name "libMobileGL.dylib" -exec cp {} ci-artifacts/ \;
           cd ci-artifacts && zip -r ../mobilegl-ios-dylib.zip .
-
       - name: Upload iOS dylib
         uses: actions/upload-artifact@v4
         with:
