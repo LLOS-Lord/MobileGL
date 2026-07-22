@@ -96,6 +96,15 @@ namespace MobileGL::MG_Backend::DirectVulkan {
             MOBILEGL_ASSERT(contentView, "Failed to query hidden NSWindow contentView");
             SendVoidBool(contentView, "setWantsLayer:", true);
 
+                        // FIX iPhone 8 Plus: Check if CAMetalLayer is available (iOS 8+)
+            if (!metalLayerClass) {
+                MGLOG_E("CAMetalLayer class not found! iOS version may be too old.");
+                return nullptr;
+            }
+            
+            // FIX: iPhone 8 Plus on iOS 16 - Metal 2 works fine, no Metal 3 needed
+            MGLOG_I("Creating CAMetalLayer for iOS, device should support Metal 2 (A11 chip)");
+            
             id metalLayer = SendId(metalLayerClass, "layer");
             MOBILEGL_ASSERT(metalLayer, "Failed to create hidden CAMetalLayer for DirectVulkan pbuffer");
             Retain(metalLayer);

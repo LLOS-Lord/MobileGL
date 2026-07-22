@@ -30,7 +30,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR (APPLE AND DEFINED CMAKE_OSX_SYSROOT AND 
     )
     
     # Find MoltenVK
-    find_library(MOLTENVK_LIB MoltenVK 
+    if(MOBILEGL_VULKAN_LIBRARY)
+        set(MOLTENVK_LIB ${MOBILEGL_VULKAN_LIBRARY})
+    else()
+        find_library(MOLTENVK_LIB MoltenVK 
         PATHS 
             ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks
             /usr/local/lib
@@ -429,7 +432,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR (APPLE AND DEFINED CMAKE_OSX_SYSROOT AND 
     )
     
     # Find MoltenVK
-    find_library(MOLTENVK_LIB MoltenVK 
+    if(MOBILEGL_VULKAN_LIBRARY)
+        set(MOLTENVK_LIB ${MOBILEGL_VULKAN_LIBRARY})
+    else()
+        find_library(MOLTENVK_LIB MoltenVK 
         PATHS 
             ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks
             /usr/local/lib

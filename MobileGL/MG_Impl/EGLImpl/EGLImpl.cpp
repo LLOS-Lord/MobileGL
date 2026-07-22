@@ -57,7 +57,13 @@ namespace MobileGL::MG_Impl::EGLImpl {
                 return MG_Backend::WindowBackend::MetalLayer;
             #endif
 #elif defined(__APPLE__)
-            return MG_Backend::WindowBackend::MetalLayer;
+            #if TARGET_OS_IOS
+                MGLOG_I("DetectWindowBackend: iOS detected");
+                return MG_Backend::WindowBackend::MetalLayer;
+            #else
+                MGLOG_I("DetectWindowBackend: macOS detected");
+                return MG_Backend::WindowBackend::MetalLayer;
+            #endif
 #elif defined(__linux__)
             return MG_Backend::WindowBackend::X11;
 #else
@@ -284,7 +290,7 @@ namespace MobileGL::MG_Impl::EGLImpl {
         
         // FIX: Validate surface is properly registered before attaching
         if (draw != EGL_NO_SURFACE) {
-            auto* surfaceState = state->GetSurfaceState(draw);
+            auto* surfaceState = state->TryGetSurface(draw);
             if (!surfaceState) {
                 MGLOG_E("MakeCurrent: Surface %p not registered in EGL state", draw);
                 state->SetError(EGL_BAD_SURFACE);
