@@ -184,13 +184,30 @@ namespace MobileGL::MG_Backend {
             return false;
         }
 
-        if (m_eglDisplayInitialized && m_eglDisplay != dpy) {
-            MGLOG_E("InitializeEGLDisplay failed: backend already bound to a different EGLDisplay");
-            return false;
+        // FIX: Ensure capabilities are initialized before first use
+        if (!m_backendCapabilitiesInitialized) {
+            MGLOG_I("MakeEGLCurrent: Lazy initializing capabilities...");
+            if (!InitCapabilities()) {
+                MGLOG_E("MakeEGLCurrent: InitCapabilities failed");
+                return false;
+            }
+            m_backendCapabilitiesInitialized = true;
         }
 
+        if (!m_backendCapabilitiesInitialized) {
+            if (!InitCapabilities()) {
+                MGLOG_E("MakeEGLCurrent failed: InitCapabilities failed");
+        }
+        
+        // FIX iOS: Ensure backend is marked ready
+        if (!m_backendInitialized) {
+            MGLOG_I("InitializeEGLDisplay: Marking backend as initialized");
+            m_backendInitialized = true;
+        }
+        
         m_eglDisplay = dpy;
         m_eglDisplayInitialized = true;
+        MGLOG_I("BackendObject::InitializeEGLDisplay succeeded dpy=%p", dpy);
         if (major) {
             *major = 1;
         }
@@ -327,8 +344,13 @@ namespace MobileGL::MG_Backend {
             MGLOG_E("MakeEGLCurrent failed: EGL display mismatch or not initialized");
             return false;
         }
+        
+        if (!m_backendInitialized) {
+            MGLOG_E("MakeEGLCurrent failed: Backend not initialized");
+            return false;
+        }
         if (!m_eglSurfaceInitialized) {
-            if (draw != read || !ActivateEGLSurface(draw)) {
+            if (draw != EGL_NO_SURFACE || read != EGL_NO_SURFACE) {
                 MGLOG_E("MakeEGLCurrent failed: EGL surface is not initialized");
                 return false;
             }

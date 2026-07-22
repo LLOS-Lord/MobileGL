@@ -48,6 +48,15 @@ namespace MobileGL::MG_Impl::EGLImpl {
 #if defined(ANDROID) || defined(__ANDROID__)
             return MG_Backend::WindowBackend::Android;
 #elif defined(__APPLE__)
+            #include <TargetConditionals.h>
+            #if TARGET_OS_IOS
+                MGLOG_I("DetectWindowBackend: iOS detected");
+                return MG_Backend::WindowBackend::MetalLayer;
+            #else
+                MGLOG_I("DetectWindowBackend: macOS detected");
+                return MG_Backend::WindowBackend::MetalLayer;
+            #endif
+#elif defined(__APPLE__)
             return MG_Backend::WindowBackend::MetalLayer;
 #elif defined(__linux__)
             return MG_Backend::WindowBackend::X11;
@@ -226,7 +235,19 @@ namespace MobileGL::MG_Impl::EGLImpl {
     EGLBoolean MakeCurrent(EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx) {
         const std::lock_guard<std::recursive_mutex> operationLock(EGLOperationMutex());
         auto* state = GetState();
+        
+        // FIX: Ensure backend is initialized before MakeCurrent
+        if (!MG_Backend::pActiveBackendObject) {
+            MGLOG_W("MakeCurrent: Backend not ready, state=%p", state);
+            // Don't auto-init here to avoid recursion - let the caller handle it
+            if (state) {
+                state->SetError(EGL_NOT_INITIALIZED);
+            }
+            return EGL_FALSE;
+        }
+        
         if (!state) {
+            MGLOG_E("MakeCurrent: EGL state is null");
             return EGL_FALSE;
         }
 
@@ -234,7 +255,7 @@ namespace MobileGL::MG_Impl::EGLImpl {
         const auto oldDraw = state->GetCurrentSurface(EGL_DRAW);
         const auto oldRead = state->GetCurrentSurface(EGL_READ);
         const auto oldContext = state->GetCurrentContext();
-        const String threadId = CurrentThreadIdString();
+        String threadId = CurrentThreadIdString();
 
         MGLOG_D("eglMakeCurrent begin thread=%s dpy=%p draw=%p read=%p ctx=%p oldDpy=%p oldDraw=%p oldRead=%p oldCtx=%p",
                 threadId.c_str(), dpy, draw, read, ctx, oldDisplay, oldDraw, oldRead, oldContext);
@@ -260,7 +281,18 @@ namespace MobileGL::MG_Impl::EGLImpl {
             MGLOG_D("eglMakeCurrent release succeeded thread=%s", threadId.c_str());
             return EGL_TRUE;
         }
-
+        
+        // FIX: Validate surface is properly registered before attaching
+        if (draw != EGL_NO_SURFACE) {
+            auto* surfaceState = state->GetSurfaceState(draw);
+            if (!surfaceState) {
+                MGLOG_E("MakeCurrent: Surface %p not registered in EGL state", draw);
+                state->SetError(EGL_BAD_SURFACE);
+                state->MakeCurrent(oldDisplay, oldDraw, oldRead, oldContext);
+                return EGL_FALSE;
+            }
+        }
+        
         auto* backendObject = GetBackendObject(state);
         if (!backendObject) {
             MGLOG_E("activeBackendObject not initialized!");

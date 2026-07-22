@@ -5499,7 +5499,11 @@ void main() {
 #ifdef VK_USE_PLATFORM_WIN32_KHR
         appInfo.apiVersion = VK_API_VERSION_1_3;
 #else
+        // FIX iOS: Use Vulkan 1.1 for maximum compatibility with Metal 2
+        // iPhone 8 Plus (A11) supports Metal 2 with GPU Family 4
+        // MoltenVK maps Vulkan 1.1/1.2 to Metal 2 just fine
         appInfo.apiVersion = VK_API_VERSION_1_1;
+        MGLOG_I("Using Vulkan API 1.1 for iOS Metal 2 compatibility");
 #endif
 
         // ---------------- Instance info -------------------
@@ -5533,9 +5537,17 @@ void main() {
         if (IsExtensionSupported(m_extensions, VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME)) {
             exts.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
             instanceInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+            MGLOG_I("Enabled VK_KHR_portability_enumeration for MoltenVK");
         } else {
-            MGLOG_I("Optional Vulkan instance extension not supported: %s",
-                    VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+            MGLOG_W("VK_KHR_portability_enumeration not found - MoltenVK may fail to load");
+        }
+        
+        // FIX: iOS requires this for non-conformant Vulkan implementations (MoltenVK)
+        if (IsExtensionSupported(m_extensions, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME)) {
+            exts.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+        }
+#endif
+
         }
 #endif
 

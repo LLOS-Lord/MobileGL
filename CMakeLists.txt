@@ -11,6 +11,46 @@ option(MOBILEGL_IOS "Build MobileGL for iOS instead of macOS when APPLE is set" 
 set(MOBILEGL_LOG_ACTIVE_LEVEL "MOBILEGL_LOG_LEVEL_INFO" CACHE STRING "MobileGL active log level macro")
 set(MOBILEGL_VULKAN_LIBRARY "" CACHE FILEPATH "Vulkan loader/MoltenVK library to link for iOS builds")
 
+# ============================================
+# iOS Build Configuration
+# ============================================
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR (APPLE AND DEFINED CMAKE_OSX_SYSROOT AND CMAKE_OSX_SYSROOT MATCHES "iPhoneOS"))
+    message(STATUS "Configuring MobileGL for iOS")
+    
+    # iPhone 8 Plus and older: Metal 2, GPU Family 4 (A11 chip)
+    # iPhone XS and newer: Metal 3 (A12+ chip)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0" CACHE STRING "iOS minimum version")
+    set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build for arm64 only")
+    
+    # MoltenVK configuration for Metal 2 compatibility
+    add_compile_definitions(
+        VK_USE_PLATFORM_METAL_EXT=1
+        MVK_ALLOW_METAL_FENCES=1
+        MVK_ALLOW_METAL_EVENTS=1
+    )
+    
+    # Find MoltenVK
+    find_library(MOLTENVK_LIB MoltenVK 
+        PATHS 
+            ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks
+            /usr/local/lib
+            ${VULKAN_SDK}/MoltenVK
+            $ENV{VULKAN_SDK}/MoltenVK
+    )
+    
+    if(MOLTENVK_LIB)
+        message(STATUS "Found MoltenVK: ${MOLTENVK_LIB}")
+    else()
+        message(WARNING "MoltenVK not found! Build may fail.")
+    endif()
+    
+    # Required iOS frameworks
+    find_library(FOUNDATION Foundation)
+    find_library(METAL Metal)
+    find_library(QUARTZCORE QuartzCore)
+    find_library(UIKIT UIKit)
+endif()
+
 if (ANDROID)
     set(MOBILEGL_BUILD_TEST OFF CACHE BOOL "Build MobileGL tests" FORCE)
     set(MOBILEGL_BUILD_BENCHMARK OFF CACHE BOOL "Build MobileGL benchmarks" FORCE)
@@ -369,6 +409,46 @@ if (TRACY_ENABLE)
     target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC -DTRACY_ENABLE)
     target_compile_definitions(${CMAKE_PROJECT_NAME}_s PUBLIC -DTRACY_ENABLE)
 endif ()
+
+# ============================================
+# iOS Build Configuration
+# ============================================
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR (APPLE AND DEFINED CMAKE_OSX_SYSROOT AND CMAKE_OSX_SYSROOT MATCHES "iPhoneOS"))
+    message(STATUS "Configuring MobileGL for iOS")
+    
+    # iPhone 8 Plus and older: Metal 2, GPU Family 4 (A11 chip)
+    # iPhone XS and newer: Metal 3 (A12+ chip)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0" CACHE STRING "iOS minimum version")
+    set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build for arm64 only")
+    
+    # MoltenVK configuration for Metal 2 compatibility
+    add_compile_definitions(
+        VK_USE_PLATFORM_METAL_EXT=1
+        MVK_ALLOW_METAL_FENCES=1
+        MVK_ALLOW_METAL_EVENTS=1
+    )
+    
+    # Find MoltenVK
+    find_library(MOLTENVK_LIB MoltenVK 
+        PATHS 
+            ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks
+            /usr/local/lib
+            ${VULKAN_SDK}/MoltenVK
+            $ENV{VULKAN_SDK}/MoltenVK
+    )
+    
+    if(MOLTENVK_LIB)
+        message(STATUS "Found MoltenVK: ${MOLTENVK_LIB}")
+    else()
+        message(WARNING "MoltenVK not found! Build may fail.")
+    endif()
+    
+    # Required iOS frameworks
+    find_library(FOUNDATION Foundation)
+    find_library(METAL Metal)
+    find_library(QUARTZCORE QuartzCore)
+    find_library(UIKIT UIKit)
+endif()
 
 if (ANDROID)
     target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC
