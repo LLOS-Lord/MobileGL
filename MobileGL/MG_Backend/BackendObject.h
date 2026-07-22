@@ -299,8 +299,8 @@ namespace MobileGL {
             EGLDisplay m_eglDisplay = EGL_NO_DISPLAY;
             EGLSurface m_eglSurface = EGL_NO_SURFACE;
             Bool m_eglDisplayInitialized = false;
-        Bool m_backendInitialized = false;
             Bool m_eglSurfaceInitialized = false;
+            Bool m_backendInitialized = false;
             Bool m_backendCapabilitiesInitialized = false;
             SurfaceKind m_eglSurfaceKind = SurfaceKind::None;
             UnorderedMap<std::thread::id, EGLCurrentState> m_eglCurrentThreads;

@@ -30,6 +30,7 @@
 #include <objc/message.h>
 #include <objc/objc.h>
 #include <objc/runtime.h>
+#include <TargetConditionals.h>
 #endif
 
 namespace MobileGL::MG_Backend::DirectVulkan {
@@ -80,12 +81,34 @@ namespace MobileGL::MG_Backend::DirectVulkan {
         void* CreateInternalMetalLayer(Uint32 width, Uint32 height, void** outWindow) {
             const auto surfaceWidth = static_cast<CGFloat>(std::max<Uint32>(width, 1));
             const auto surfaceHeight = static_cast<CGFloat>(std::max<Uint32>(height, 1));
-            id windowClass = reinterpret_cast<id>(objc_getClass("NSWindow"));
             id metalLayerClass = reinterpret_cast<id>(objc_getClass("CAMetalLayer"));
-            MOBILEGL_ASSERT(windowClass && metalLayerClass,
-                            "Failed to resolve NSWindow/CAMetalLayer for DirectVulkan pbuffer");
-
+            
+            // FIX iPhone 8 Plus: Check if CAMetalLayer is available (iOS 8+)
+            if (!metalLayerClass) {
+                MGLOG_E("CAMetalLayer class not found! iOS version may be too old.");
+                return nullptr;
+            }
+            
+            MGLOG_I("Creating CAMetalLayer for iOS, device should support Metal 2 (A11 chip)");
+            
             CGRect frame = {{0.0, 0.0}, {surfaceWidth, surfaceHeight}};
+            id metalLayer = SendId(metalLayerClass, "layer");
+            MOBILEGL_ASSERT(metalLayer, "Failed to create CAMetalLayer for DirectVulkan pbuffer");
+            Retain(metalLayer);
+            SendVoidCGRect(metalLayer, "setFrame:", frame);
+            SendVoidCGSize(metalLayer, "setDrawableSize:", frame.size);
+
+#if TARGET_OS_IOS
+            // iOS: No NSWindow - just return the CAMetalLayer directly
+            // The MoltenVK Metal surface extension only needs the CAMetalLayer
+            *outWindow = metalLayer;
+            MGLOG_I("Created CAMetalLayer for iOS (headless pbuffer) %ux%u", width, height);
+            return metalLayer;
+#else
+            // macOS: Wrap in NSWindow
+            id windowClass = reinterpret_cast<id>(objc_getClass("NSWindow"));
+            MOBILEGL_ASSERT(windowClass, "Failed to resolve NSWindow for DirectVulkan pbuffer");
+
             id window = SendId(windowClass, "alloc");
             window = ObjcMsgSend<id (*)(id, SEL, CGRect, unsigned long, unsigned long, bool)>()(
                 window, sel_registerName("initWithContentRect:styleMask:backing:defer:"),
@@ -95,25 +118,11 @@ namespace MobileGL::MG_Backend::DirectVulkan {
             id contentView = SendId(window, "contentView");
             MOBILEGL_ASSERT(contentView, "Failed to query hidden NSWindow contentView");
             SendVoidBool(contentView, "setWantsLayer:", true);
-
-                        // FIX iPhone 8 Plus: Check if CAMetalLayer is available (iOS 8+)
-            if (!metalLayerClass) {
-                MGLOG_E("CAMetalLayer class not found! iOS version may be too old.");
-                return nullptr;
-            }
-            
-            // FIX: iPhone 8 Plus on iOS 16 - Metal 2 works fine, no Metal 3 needed
-            MGLOG_I("Creating CAMetalLayer for iOS, device should support Metal 2 (A11 chip)");
-            
-            id metalLayer = SendId(metalLayerClass, "layer");
-            MOBILEGL_ASSERT(metalLayer, "Failed to create hidden CAMetalLayer for DirectVulkan pbuffer");
-            Retain(metalLayer);
-            SendVoidCGRect(metalLayer, "setFrame:", frame);
-            SendVoidCGSize(metalLayer, "setDrawableSize:", frame.size);
             SendVoidId(contentView, "setLayer:", metalLayer);
 
             *outWindow = window;
             return metalLayer;
+#endif
         }
     } // namespace
 #endif
@@ -5557,9 +5566,6 @@ void main() {
         }
 #endif
 
-        }
-#endif
-
         if (m_validationLayersEnabled) {
             exts.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         }
@@ -5970,6 +5976,13 @@ void main() {
             m_window = reinterpret_cast<NativeWindowType>(
                 CreateInternalMetalLayer(m_config.SurfaceWidth, m_config.SurfaceHeight, &m_platformDisplay));
             m_platformLibrary = reinterpret_cast<void*>(m_window);
+            // FIX iOS: Check if Metal layer creation succeeded
+            if (!m_window) {
+                MGLOG_E("Failed to create internal Metal layer for pbuffer!");
+                m_surface = VK_NULL_HANDLE;
+                return;
+            }
+            MGLOG_I("Metal layer created for iOS pbuffer surface");
 #else
             auto* createHeadlessSurface =
                 reinterpret_cast<PFN_vkCreateHeadlessSurfaceEXT>(
@@ -5997,11 +6010,17 @@ void main() {
         sci.hwnd = hwnd;
         VK_VERIFY(vkCreateWin32SurfaceKHR(m_instance, &sci, nullptr, &m_surface), "vkCreateWin32SurfaceKHR failed");
 #elif defined VK_USE_PLATFORM_METAL_EXT
-        MOBILEGL_ASSERT(m_window, "CAMetalLayer is null");
-
+        // FIX: Allow null window for pbuffer-only contexts on iOS
+        if (!m_window) {
+            MGLOG_E("Both window and platform display are null - cannot create Metal surface");
+            return;
+        }
+        
+        MGLOG_I("Creating Metal surface with layer=%p", m_window);
         VkMetalSurfaceCreateInfoEXT sci{VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT};
         sci.pLayer = reinterpret_cast<const void*>(m_window);
         VK_VERIFY(vkCreateMetalSurfaceEXT(m_instance, &sci, nullptr, &m_surface), "vkCreateMetalSurfaceEXT failed");
+        MGLOG_I("Metal surface created successfully for iOS");
 #elif defined VK_USE_PLATFORM_XLIB_KHR
         MOBILEGL_ASSERT(m_window, "X11 Window is null");
 

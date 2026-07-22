@@ -14,6 +14,10 @@
 #include <sstream>
 #include <type_traits>
 
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#endif
+
 namespace MobileGL::MG_Impl::EGLImpl {
     namespace {
         using EGLStateContext = MG_State::EGLState::EGLContext;
@@ -47,15 +51,6 @@ namespace MobileGL::MG_Impl::EGLImpl {
         MG_Backend::WindowBackend DetectWindowBackend() {
 #if defined(ANDROID) || defined(__ANDROID__)
             return MG_Backend::WindowBackend::Android;
-#elif defined(__APPLE__)
-            #include <TargetConditionals.h>
-            #if TARGET_OS_IOS
-                MGLOG_I("DetectWindowBackend: iOS detected");
-                return MG_Backend::WindowBackend::MetalLayer;
-            #else
-                MGLOG_I("DetectWindowBackend: macOS detected");
-                return MG_Backend::WindowBackend::MetalLayer;
-            #endif
 #elif defined(__APPLE__)
             #if TARGET_OS_IOS
                 MGLOG_I("DetectWindowBackend: iOS detected");
@@ -290,8 +285,7 @@ namespace MobileGL::MG_Impl::EGLImpl {
         
         // FIX: Validate surface is properly registered before attaching
         if (draw != EGL_NO_SURFACE) {
-            auto* surfaceState = state->TryGetSurface(draw);
-            if (!surfaceState) {
+            if (!state->TryGetSurface(draw)) {
                 MGLOG_E("MakeCurrent: Surface %p not registered in EGL state", draw);
                 state->SetError(EGL_BAD_SURFACE);
                 state->MakeCurrent(oldDisplay, oldDraw, oldRead, oldContext);
