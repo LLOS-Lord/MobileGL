@@ -285,7 +285,7 @@ namespace MobileGL::MG_Impl::EGLImpl {
         
         // FIX: Validate surface is properly registered before attaching
         if (draw != EGL_NO_SURFACE) {
-            if (!state->TryGetSurface(draw)) {
+            if (!state->ValidateSurface(draw)) {
                 MGLOG_E("MakeCurrent: Surface %p not registered in EGL state", draw);
                 state->SetError(EGL_BAD_SURFACE);
                 state->MakeCurrent(oldDisplay, oldDraw, oldRead, oldContext);
