@@ -334,15 +334,7 @@ namespace MobileGL::MG_Backend::DirectVulkan {
                                                  const PhysicalDevice& compareWithDevice,
                                                  PhysicalDevice& outBetterDevice);
         static constexpr const char* s_validationLayerNames[] = {"VK_LAYER_KHRONOS_validation"};
-        #if defined(__APPLE__) && TARGET_OS_IOS
-        // MoltenVK on iOS requires VK_KHR_portability_subset
-        static constexpr const char* s_deviceExtensionNames[] = {
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-            VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME,
-        };
-#else
         static constexpr const char* s_deviceExtensionNames[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-#endif
         static Bool CheckValidationLayerSupport();
 
         static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
