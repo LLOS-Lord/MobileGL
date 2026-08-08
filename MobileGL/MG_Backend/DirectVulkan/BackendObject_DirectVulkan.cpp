@@ -436,6 +436,12 @@ namespace MobileGL::MG_Backend::DirectVulkan {
             return false;
         }
 
+#if defined(__APPLE__) && TARGET_OS_IOS
+        if (handle.Backend == WindowBackend::MetalLayer) {
+            MGLOG_I("DirectVulkan: Creating window surface with iOS CAMetalLayer");
+        }
+#endif
+
         return RegisterEGLWindowSurface(surface, handle);
     }
 

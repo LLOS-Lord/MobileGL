@@ -5531,18 +5531,6 @@ void main() {
 
         // Extensions
         Vector<const char*> exts = {VK_KHR_SURFACE_EXTENSION_NAME};
-
-#if defined(VK_USE_PLATFORM_METAL_EXT)
-        // MoltenVK on iOS requires these extensions
-        if (IsExtensionSupported(m_extensions, VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME)) {
-            exts.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-            MGLOG_I("Enabling VK_KHR_portability_enumeration for MoltenVK");
-        }
-        if (IsExtensionSupported(m_extensions, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME)) {
-            exts.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-        }
-#endif
-
         if (!m_window) {
 #ifdef VK_USE_PLATFORM_METAL_EXT
             exts.push_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
@@ -5829,6 +5817,13 @@ void main() {
         deviceFeatures.shaderInt64 = supportedDeviceFeatures.shaderInt64;
         deviceFeatures.drawIndirectFirstInstance = supportedDeviceFeatures.drawIndirectFirstInstance;
         m_logicOpFeatureEnabled = deviceFeatures.logicOp == VK_TRUE;
+
+#if defined(__APPLE__) && TARGET_OS_IOS
+        // MoltenVK on iOS: enable additional features if available
+        deviceFeatures.samplerAnisotropy = supportedDeviceFeatures.samplerAnisotropy;
+        deviceFeatures.fillModeNonSolid = supportedDeviceFeatures.fillModeNonSolid;
+        deviceFeatures.depthBounds = supportedDeviceFeatures.depthBounds;
+#endif
 
         VkDeviceCreateInfo deviceCreateInfo{};
         deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

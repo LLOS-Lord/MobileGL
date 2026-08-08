@@ -66,29 +66,22 @@ namespace MobileGL::MG_ConfigLoader {
 
     inline void InitBackendType() {
         String backendTypeStr;
-        QueryEnvVariable("MOBILEGL_BACKEND_TYPE", backendTypeStr, "Auto");
+        QueryEnvVariable("MOBILEGL_BACKEND_TYPE", backendTypeStr, "DirectGLES");
 
-        // iOS Auto-detection: prefer DirectVulkan when MoltenVK is available
+        // iOS 16+: Auto-detect MoltenVK and force DirectVulkan
 #if defined(__APPLE__) && TARGET_OS_IOS
-        if (backendTypeStr == "Auto") {
-            // Check if MoltenVK is available on iOS
-            if (dlopen("@rpath/libMoltenVK.dylib", RTLD_NOW) != nullptr ||
-                dlopen("libMoltenVK.dylib", RTLD_NOW) != nullptr) {
-                MGLOG_I("Config: iOS detected with MoltenVK available, defaulting to DirectVulkan");
+        if (backendTypeStr == "DirectGLES" || backendTypeStr == "Auto") {
+            void* mvk = dlopen("@rpath/libMoltenVK.dylib", RTLD_NOW);
+            if (!mvk) mvk = dlopen("libMoltenVK.dylib", RTLD_NOW);
+            if (mvk) {
                 backendTypeStr = "DirectVulkan";
+                MGLOG_I("Config: iOS detected with MoltenVK, forcing DirectVulkan");
+                dlclose(mvk);
             } else {
-                MGLOG_I("Config: iOS detected, MoltenVK not found, using DirectGLES");
-                backendTypeStr = "DirectGLES";
+                MGLOG_W("Config: iOS detected but MoltenVK not found, keeping DirectGLES");
             }
         }
 #endif
-
-        // Also allow explicit env override for iOS Vulkan
-        const char* forceVulkan = std::getenv("MOBILEGL_FORCE_VULKAN");
-        if (forceVulkan && forceVulkan[0] == '1') {
-            backendTypeStr = "DirectVulkan";
-            MGLOG_I("Config: MOBILEGL_FORCE_VULKAN=1, forcing DirectVulkan");
-        }
 #define ENTRY(backendType)                                                                                             \
     if (backendTypeStr == #backendType) {                                                                              \
         MG_Config::ActiveBackendType = BackendType::backendType;                                                       \
