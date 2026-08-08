@@ -1,3 +1,4 @@
+#include <dlfcn.h>
 // MobileGL - MobileGL/ConfigLoader.cpp
 // Copyright (c) 2025-2026 MobileGL-Dev
 // Licensed under the GNU Lesser General Public License v3.0:
@@ -7,6 +8,9 @@
 // End of Source File Header
 
 #include "Config.h"
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#endif
 
 #ifndef _WIN32
 extern char** environ;
@@ -62,7 +66,29 @@ namespace MobileGL::MG_ConfigLoader {
 
     inline void InitBackendType() {
         String backendTypeStr;
-        QueryEnvVariable("MOBILEGL_BACKEND_TYPE", backendTypeStr, "DirectGLES");
+        QueryEnvVariable("MOBILEGL_BACKEND_TYPE", backendTypeStr, "Auto");
+
+        // iOS Auto-detection: prefer DirectVulkan when MoltenVK is available
+#if defined(__APPLE__) && TARGET_OS_IOS
+        if (backendTypeStr == "Auto") {
+            // Check if MoltenVK is available on iOS
+            if (dlopen("@rpath/libMoltenVK.dylib", RTLD_NOW) != nullptr ||
+                dlopen("libMoltenVK.dylib", RTLD_NOW) != nullptr) {
+                MGLOG_I("Config: iOS detected with MoltenVK available, defaulting to DirectVulkan");
+                backendTypeStr = "DirectVulkan";
+            } else {
+                MGLOG_I("Config: iOS detected, MoltenVK not found, using DirectGLES");
+                backendTypeStr = "DirectGLES";
+            }
+        }
+#endif
+
+        // Also allow explicit env override for iOS Vulkan
+        const char* forceVulkan = std::getenv("MOBILEGL_FORCE_VULKAN");
+        if (forceVulkan && forceVulkan[0] == '1') {
+            backendTypeStr = "DirectVulkan";
+            MGLOG_I("Config: MOBILEGL_FORCE_VULKAN=1, forcing DirectVulkan");
+        }
 #define ENTRY(backendType)                                                                                             \
     if (backendTypeStr == #backendType) {                                                                              \
         MG_Config::ActiveBackendType = BackendType::backendType;                                                       \

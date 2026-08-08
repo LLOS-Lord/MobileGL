@@ -5531,6 +5531,18 @@ void main() {
 
         // Extensions
         Vector<const char*> exts = {VK_KHR_SURFACE_EXTENSION_NAME};
+
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+        // MoltenVK on iOS requires these extensions
+        if (IsExtensionSupported(m_extensions, VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME)) {
+            exts.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+            MGLOG_I("Enabling VK_KHR_portability_enumeration for MoltenVK");
+        }
+        if (IsExtensionSupported(m_extensions, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME)) {
+            exts.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+        }
+#endif
+
         if (!m_window) {
 #ifdef VK_USE_PLATFORM_METAL_EXT
             exts.push_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);

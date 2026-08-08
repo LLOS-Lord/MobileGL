@@ -53,7 +53,7 @@ namespace MobileGL::MG_Impl::EGLImpl {
             return MG_Backend::WindowBackend::Android;
 #elif defined(__APPLE__)
             #if TARGET_OS_IOS
-                MGLOG_I("DetectWindowBackend: iOS detected");
+                MGLOG_I("DetectWindowBackend: iOS detected, using MetalLayer for MoltenVK");
                 return MG_Backend::WindowBackend::MetalLayer;
             #else
                 MGLOG_I("DetectWindowBackend: macOS detected");
@@ -134,6 +134,15 @@ namespace MobileGL::MG_Impl::EGLImpl {
             .Width = static_cast<Uint32>(std::max<EGLint>(GetAttribValue(attrib_list, EGL_WIDTH, 0), 0)),
             .Height = static_cast<Uint32>(std::max<EGLint>(GetAttribValue(attrib_list, EGL_HEIGHT, 0), 0)),
         };
+
+#if defined(__APPLE__) && TARGET_OS_IOS
+        // On iOS, if width/height not specified, try to get from the Metal layer
+        if (windowHandle.Width == 0 || windowHandle.Height == 0) {
+            // The window pointer on iOS is a CAMetalLayer, we can't easily get size from here
+            // but the VulkanRenderer will handle it during surface creation
+            MGLOG_I("EGL: iOS window surface created with default dimensions, will auto-detect");
+        }
+#endif
 
         EGLSurface surface = state->CreateWindowSurface(dpy, config, window, attrib_list);
         if (surface == EGL_NO_SURFACE) {
